@@ -60,7 +60,7 @@ fn main() {
         eval_scale: SCALE as f32,
         steps: TrainingSteps {
             batch_size: 16_384,
-            batches_per_superbatch: 6104,
+            batches_per_superbatch: 16,
             start_superbatch: 1,
             end_superbatch: 120,
         },
@@ -105,9 +105,9 @@ fn main() {
     };
 
     // loading directly from a `BulletFormat` file
-    let data_loader = loader::DirectSequentialDataLoader::new(&["data/baseline.data"]);
+    // let _data_loader = loader::DirectSequentialDataLoader::new(&["data/baseline.data"]);
 
-    trainer.run(&schedule, &settings, &data_loader);
+    trainer.run(&schedule, &settings, &_data_loader_viri);
 }
 
 // ============ EXAMPLE INFERENCE STARTS HERE ============
