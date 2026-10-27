@@ -6,7 +6,7 @@ There's potentially a lot of elo available by adjusting the wdl
 and lr schedulers, depending on your dataset.
 */
 use bullet_lib::{
-    game::{inputs::Chess768, outputs::MaterialCount},
+    game::{inputs::ChessBucketsMirrored, outputs::MaterialCount},
     nn::optimiser::AdamW,
     trainer::{
         save::SavedFormat,
@@ -30,7 +30,7 @@ fn main() {
         // the default AdamW params include clipping to range [-1.98, 1.98]
         .optimiser(AdamW)
         // basic piece-square chessboard inputs
-        .inputs(Chess768)
+        .inputs(ChessBucketsMirrored::new([0; 32]))
         .output_buckets(MaterialCount::<NUM_OUTPUT_BUCKETS>)
         // chosen such that inference may be efficiently implemented in-engine
         .save_format(&[
@@ -60,7 +60,7 @@ fn main() {
         eval_scale: SCALE as f32,
         steps: TrainingSteps {
             batch_size: 16_384,
-            batches_per_superbatch: 16,
+            batches_per_superbatch: 207,
             start_superbatch: 1,
             end_superbatch: 120,
         },
