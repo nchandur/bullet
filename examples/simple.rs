@@ -17,7 +17,7 @@ use bullet_lib::{
 };
 
 const NUM_OUTPUT_BUCKETS: usize = 8;
-const HIDDEN_SIZE: usize = 32;
+const HIDDEN_SIZE: usize = 64;
 const SCALE: i32 = 400;
 const QA: i16 = 255;
 const QB: i16 = 64;
