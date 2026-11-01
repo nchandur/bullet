@@ -12,7 +12,10 @@ use bullet_lib::{
         schedule::{TrainingSchedule, TrainingSteps, lr, wdl},
         settings::LocalSettings,
     },
-    value::{ValueTrainerBuilder, loader::DirectSequentialDataLoader},
+    value::{
+        ValueTrainerBuilder,
+        loader::viribinpack::{Filter, ViriBinpackLoader, ViriFilter},
+    },
 };
 
 fn main() {
@@ -21,7 +24,7 @@ fn main() {
     let dataset_path = "data/baseline.data";
     let initial_lr = 0.001;
     let final_lr = 0.001 * 0.3f32.powi(5);
-    let superbatches = 640;
+    let superbatches = 120;
     let wdl_proportion = 0.75;
     const NUM_OUTPUT_BUCKETS: usize = 8;
     #[rustfmt::skip]
@@ -86,7 +89,7 @@ fn main() {
         eval_scale: 400.0,
         steps: TrainingSteps {
             batch_size: 16_384,
-            batches_per_superbatch: 6104,
+            batches_per_superbatch: 310,
             start_superbatch: 1,
             end_superbatch: superbatches,
         },
@@ -97,7 +100,11 @@ fn main() {
 
     let settings = LocalSettings { threads: 2, test_set: None, output_directory: "checkpoints", batch_queue_size: 32 };
 
-    let dataloader = DirectSequentialDataLoader::new(&[dataset_path]);
-
+    let dataloader = ViriBinpackLoader::new(
+        dataset_path,
+        1024, // buffer size in MB
+        4,    // threads
+        ViriFilter::Builtin(Filter::default()),
+    );
     trainer.run(&schedule, &settings, &dataloader);
 }
