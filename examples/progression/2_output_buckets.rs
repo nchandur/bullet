@@ -1,5 +1,5 @@
 use bullet_lib::{
-    game::{inputs::Chess768, outputs::MaterialCount},
+    game::{inputs::ChessBucketsMirrored, outputs::MaterialCount},
     nn::optimiser::AdamW,
     trainer::{
         save::SavedFormat,
@@ -9,34 +9,35 @@ use bullet_lib::{
     value::{ValueTrainerBuilder, loader::DirectSequentialDataLoader},
 };
 
+const NUM_OUTPUT_BUCKETS: usize = 8;
+const HIDDEN_SIZE: usize = 64;
+const SCALE: i32 = 400;
+const QA: i16 = 255;
+const QB: i16 = 64;
+
 fn main() {
     // hyperparams to fiddle with
-    let hl_size = 512;
     let dataset_path = "data/baseline.data";
     let initial_lr = 0.001;
     let final_lr = 0.001 * 0.3f32.powi(5);
     let superbatches = 320;
     let wdl_proportion = 0.75;
-    const NUM_OUTPUT_BUCKETS: usize = 8;
 
     let mut trainer = ValueTrainerBuilder::default()
         .dual_perspective()
         .optimiser(AdamW)
-        .inputs(Chess768)
+        .inputs(ChessBucketsMirrored::new([0; 32]))
         .output_buckets(MaterialCount::<NUM_OUTPUT_BUCKETS>)
         .save_format(&[
-            SavedFormat::id("l0w").round().quantise::<i16>(255),
-            SavedFormat::id("l0b").round().quantise::<i16>(255),
-            // we want to save output-bucketed weights in a format
-            // that is suitable for fast cpu inference
-            SavedFormat::id("l1w").round().quantise::<i16>(64).transpose(),
-            SavedFormat::id("l1b").round().quantise::<i16>(255 * 64),
+            SavedFormat::id("l0w").round().quantise::<i16>(QA),
+            SavedFormat::id("l0b").round().quantise::<i16>(QA),
+            SavedFormat::id("l1w").round().quantise::<i16>(QB),
+            SavedFormat::id("l1b").round().quantise::<i16>(QA * QB),
         ])
         .loss_fn(|output, target| output.sigmoid().squared_error(target))
         .build(|builder, stm_inputs, ntm_inputs, output_buckets| {
-            // weights
-            let l0 = builder.new_affine("l0", 768, hl_size);
-            let l1 = builder.new_affine("l1", 2 * hl_size, NUM_OUTPUT_BUCKETS);
+            let l0 = builder.new_affine("l0", 768, HIDDEN_SIZE);
+            let l1 = builder.new_affine("l1", 2 * HIDDEN_SIZE, NUM_OUTPUT_BUCKETS);
 
             // inference
             let stm_hidden = l0.forward(stm_inputs).screlu();
@@ -47,10 +48,10 @@ fn main() {
 
     let schedule = TrainingSchedule {
         net_id: "2_output_buckets".to_string(),
-        eval_scale: 400.0,
+        eval_scale: SCALE as f32,
         steps: TrainingSteps {
             batch_size: 16_384,
-            batches_per_superbatch: 6104,
+            batches_per_superbatch: 310,
             start_superbatch: 1,
             end_superbatch: superbatches,
         },
