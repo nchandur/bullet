@@ -21,11 +21,8 @@ use bullet_lib::{
 fn main() {
     // hyperparams to fiddle with
     let hl_size = 64;
-    let dataset_path = "data/baseline.data";
-    let initial_lr = 0.001;
-    let final_lr = 0.001 * 0.3f32.powi(5);
+    let dataset_path = "data/viri.vf";
     let superbatches = 120;
-    let wdl_proportion = 0.75;
     const NUM_OUTPUT_BUCKETS: usize = 8;
     #[rustfmt::skip]
     const BUCKET_LAYOUT: [usize; 32] = [
@@ -85,20 +82,20 @@ fn main() {
     trainer.optimiser.set_params_for_weight("l0f", stricter_clipping);
 
     let schedule = TrainingSchedule {
-        net_id: "1_input_bucket".to_string(),
+        net_id: "4_input_buckets".to_string(),
         eval_scale: 400.0,
         steps: TrainingSteps {
             batch_size: 16_384,
-            batches_per_superbatch: 310,
+            batches_per_superbatch: 207,
             start_superbatch: 1,
             end_superbatch: superbatches,
         },
-        wdl_scheduler: wdl::ConstantWDL { value: wdl_proportion },
-        lr_scheduler: lr::CosineDecayLR { initial_lr, final_lr, final_superbatch: superbatches },
+        wdl_scheduler: wdl::LinearWDL { start: 0.2, end: 0.5 },
+        lr_scheduler: lr::StepLR { start: 0.001, gamma: 0.1, step: 40 },
         save_rate: 10,
     };
 
-    let settings = LocalSettings { threads: 2, test_set: None, output_directory: "checkpoints", batch_queue_size: 32 };
+    let settings = LocalSettings { threads: 4, test_set: None, output_directory: "checkpoints", batch_queue_size: 64 };
 
     let dataloader = ViriBinpackLoader::new(
         dataset_path,
