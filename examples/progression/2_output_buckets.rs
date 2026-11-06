@@ -6,11 +6,14 @@ use bullet_lib::{
         schedule::{TrainingSchedule, TrainingSteps, lr, wdl},
         settings::LocalSettings,
     },
-    value::{ValueTrainerBuilder, loader::DirectSequentialDataLoader},
+    value::{
+        ValueTrainerBuilder,
+        loader::viribinpack::{Filter, ViriBinpackLoader, ViriFilter},
+    },
 };
 
 const NUM_OUTPUT_BUCKETS: usize = 8;
-const HIDDEN_SIZE: usize = 64;
+const HIDDEN_SIZE: usize = 128;
 const SCALE: i32 = 400;
 const QA: i16 = 255;
 const QB: i16 = 64;
@@ -21,7 +24,6 @@ fn main() {
     let initial_lr = 0.001;
     let final_lr = 0.001 * 0.3f32.powi(5);
     let superbatches = 320;
-    let wdl_proportion = 0.75;
 
     let mut trainer = ValueTrainerBuilder::default()
         .dual_perspective()
@@ -55,14 +57,19 @@ fn main() {
             start_superbatch: 1,
             end_superbatch: superbatches,
         },
-        wdl_scheduler: wdl::ConstantWDL { value: wdl_proportion },
+        wdl_scheduler: wdl::LinearWDL { start: 0.2, end: 0.5 },
         lr_scheduler: lr::CosineDecayLR { initial_lr, final_lr, final_superbatch: superbatches },
         save_rate: 10,
     };
 
     let settings = LocalSettings { threads: 2, test_set: None, output_directory: "checkpoints", batch_queue_size: 32 };
 
-    let dataloader = DirectSequentialDataLoader::new(&[dataset_path]);
+    let dataloader = ViriBinpackLoader::new(
+        dataset_path,
+        4096, // buffer size in MB
+        4,    // threads
+        ViriFilter::Builtin(Filter::default()),
+    );
 
     trainer.run(&schedule, &settings, &dataloader);
 }
