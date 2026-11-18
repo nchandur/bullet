@@ -22,7 +22,7 @@ fn main() {
     // hyperparams to fiddle with
     let hl_size = 64;
     let dataset_path = "data/viri.vf";
-    let superbatches = 120;
+    let superbatches = 200;
     const NUM_OUTPUT_BUCKETS: usize = 8;
     #[rustfmt::skip]
     const BUCKET_LAYOUT: [usize; 32] = [
@@ -91,7 +91,7 @@ fn main() {
             end_superbatch: superbatches,
         },
         wdl_scheduler: wdl::LinearWDL { start: 0.2, end: 0.5 },
-        lr_scheduler: lr::StepLR { start: 0.001, gamma: 0.1, step: 40 },
+        lr_scheduler: lr::StepLR { start: 0.001, gamma: 0.3, step: 40 },
         save_rate: 10,
     };
 
@@ -99,7 +99,7 @@ fn main() {
 
     let dataloader = ViriBinpackLoader::new(
         dataset_path,
-        1024, // buffer size in MB
+        4096, // buffer size in MB
         4,    // threads
         ViriFilter::Builtin(Filter::default()),
     );
